@@ -17,15 +17,13 @@ class AuthenticateWithApiKey
      */
     public function handle(Request $request, Closure $next, ?string $requiredPermission = null): Response
     {
-        // Tenta obter a API key do cabeçalho
+        
         $apiKey = $request->header('X-API-KEY');
 
-        // Tentar obter do parâmetro de query caso não esteja presente no cabeçalho
         if (empty($apiKey)) {
             $apiKey = $request->query('api_key');
         }
 
-        // Se ainda não temos uma API key, retorna erro
         if (empty($apiKey)) {
             return response()->json([
                 'error' => 'API key is required',
@@ -33,10 +31,9 @@ class AuthenticateWithApiKey
             ], 401);
         }
 
-        // Busca a API key no banco
         $keyModel = ApiKey::where('key', $apiKey)->first();
         
-        // Verifica se a API key existe
+
         if (!$keyModel) {
             return response()->json([
                 'error' => 'Invalid API key',
@@ -44,7 +41,6 @@ class AuthenticateWithApiKey
             ], 401);
         }
 
-        // Verifica se a API key é válida (não deletada e não expirada)
         if (!$keyModel->isValid()) {
             return response()->json([
                 'error' => 'Expired API key',
@@ -52,7 +48,6 @@ class AuthenticateWithApiKey
             ], 401);
         }
 
-        // Verifica se a API key pode ser usada no IP atual
         if (!$keyModel->canBeUsedFromIp()) {
             return response()->json([
                 'error' => 'IP not allowed',
@@ -60,7 +55,6 @@ class AuthenticateWithApiKey
             ], 403);
         }
 
-        // Verifica permissões específicas se necessário
         if ($requiredPermission && !$keyModel->hasPermission($requiredPermission)) {
             return response()->json([
                 'error' => 'Permission denied',
@@ -68,15 +62,12 @@ class AuthenticateWithApiKey
             ], 403);
         }
 
-        // Registra o uso da API key
         $keyModel->markAsUsed();
 
-        // Associar o usuário relacionado à API key, se houver
         if ($keyModel->user_id) {
             auth()->login($keyModel->user);
         }
 
-        // Adiciona a API key ao request para possível uso futuro
         $request->apiKey = $keyModel;
 
         return $next($request);
