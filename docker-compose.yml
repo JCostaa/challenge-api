@@ -1,0 +1,79 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: challenge_app
+    restart: unless-stopped
+    working_dir: /var/www
+    environment:
+      DB_CONNECTION: pgsql
+      DB_HOST: pgsql
+      DB_PORT: 5432
+      DB_DATABASE: challenge
+      DB_USERNAME: postgres
+      DB_PASSWORD: secret
+      SCOUT_DRIVER: algolia
+      ALGOLIA_APP_ID: 07LE0RGC0I
+      ALGOLIA_SECRET: 22ab274d124f253ac5fe311619445097
+      ELASTICSEARCH_HOST: elasticsearch
+      ELASTICSEARCH_PORT: 9200
+      COMPOSER_MEMORY_LIMIT: -1
+    volumes:
+      - ./:/var/www
+    networks:
+      - challenge-network
+    depends_on:
+      - pgsql
+
+  nginx:
+    image: nginx:alpine
+    container_name: challenge_nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d  # Verifique se este caminho está correto
+    networks:
+      - challenge-network
+    depends_on:
+      - app
+
+  pgsql:
+    image: postgres:13
+    container_name: challenge_pgsql
+    restart: unless-stopped
+    ports:
+      - "5432:5432"  # Mapeie a porta 5432 do container para 5432 na sua máquina
+    environment:
+      POSTGRES_DB: challenge
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - pgsqldata:/var/lib/postgresql/data
+    networks:
+      - challenge-network
+
+  elasticsearch:
+    image: elasticsearch:8.6.2
+    environment:
+      - "discovery.type=single-node"
+      - "xpack.security.enabled=false"  # Importante para o Elasticsearch 8.x
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - challenge-network
+
+networks:
+  challenge-network:
+    driver: bridge
+
+volumes:
+  pgsqldata:
+  elasticsearch_data:
+    driver: local
