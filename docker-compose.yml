@@ -34,7 +34,7 @@ services:
       - "8000:80"
     volumes:
       - ./:/var/www
-      - ./docker/nginx/conf.d:/etc/nginx/conf.d  # Verifique se este caminho está correto
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d 
     networks:
       - challenge-network
     depends_on:
@@ -45,7 +45,7 @@ services:
     container_name: challenge_pgsql
     restart: unless-stopped
     ports:
-      - "5432:5432"  # Mapeie a porta 5432 do container para 5432 na sua máquina
+      - "5432:5432" 
     environment:
       POSTGRES_DB: challenge
       POSTGRES_USER: postgres
@@ -53,19 +53,6 @@ services:
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - pgsqldata:/var/lib/postgresql/data
-    networks:
-      - challenge-network
-
-  elasticsearch:
-    image: elasticsearch:8.6.2
-    environment:
-      - "discovery.type=single-node"
-      - "xpack.security.enabled=false"  # Importante para o Elasticsearch 8.x
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-    ports:
-      - "9200:9200"
-    volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
     networks:
       - challenge-network
 
